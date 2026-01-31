@@ -1,10 +1,13 @@
 const express = require('express');
 const router = express.Router();
-const axios = require('axios');
-require('dotenv').config();
+const fs = require('fs');
+const path = require('path');
 
-router.post('/get-leads', async (req,res)=>{
-    try {
+const dataPath = path.join(__dirname, '..', 'leads_dataset.json');
+const leadsData = JSON.parse(fs.readFileSync(dataPath, 'utf-8'));
+
+router.post('/get-leads', (req, res) => {
+  try {
     const { location, niche } = req.body;
 
     if (!location || !niche) {
@@ -13,33 +16,20 @@ router.post('/get-leads', async (req,res)=>{
       });
     }
 
-    const response = await axios.get(
-      "https://maps.googleapis.com/maps/api/place/textsearch/json",
-      {
-        params: {
-          query: `${niche} in ${location}`,
-          key: process.env.GOOGLE_PLACES_API_KEY,
-        },
-      }
+    const filteredLeads = leadsData.filter(lead =>
+      lead.location.toLowerCase().includes(location.toLowerCase()) &&
+      lead.niche.toLowerCase().includes(niche.toLowerCase())
     );
 
-    console.log("Google API Status:", response.data.status); // Add this
-    console.log("Results count:", response.data.results.length);
-
-    const leads = response.data.results.map((place) => ({
-      name: place.name || "",
-      address: place.formatted_address || "",
-      rating: place.rating || null,
-      totalRatings: place.user_ratings_total || 0,
-    }));
     res.json({
-      count: leads.length,
-      leads,
+      count: filteredLeads.length,
+      leads: filteredLeads,
     });
+
   } catch (err) {
-    console.error(err.message);
+    console.error(err);
     res.status(500).json({ error: "Something went wrong" });
   }
-})
+});
 
 module.exports = router;
