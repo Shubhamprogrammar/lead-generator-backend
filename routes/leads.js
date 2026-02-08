@@ -3,8 +3,8 @@ const router = express.Router();
 const axios = require('axios');
 require('dotenv').config();
 
-router.post('/get-leads', async (req,res)=>{
-    try {
+router.post('/get-leads', async (req, res) => {
+  try {
     const { location, niche } = req.body;
 
     if (!location || !niche) {
@@ -14,32 +14,40 @@ router.post('/get-leads', async (req,res)=>{
     }
 
     const response = await axios.get(
-      "https://maps.googleapis.com/maps/api/place/textsearch/json",
+      "https://places-api.foursquare.com/places/search",
       {
+        headers: {
+          "Accept": "application/json",
+          "X-Places-Api-Version": "2025-06-17",
+          "Authorization": `Bearer ${process.env.FOURSQUARE_API_KEY}`,
+        },
         params: {
-          query: `${niche} in ${location}`,
-          key: process.env.GOOGLE_PLACES_API_KEY,
+          query: niche,
+          near: location,
+          limit: 10,
         },
       }
     );
 
-    console.log("Google API Status:", response.data.status); // Add this
-    console.log("Results count:", response.data.results.length);
-
     const leads = response.data.results.map((place) => ({
       name: place.name || "",
-      address: place.formatted_address || "",
-      rating: place.rating || null,
-      totalRatings: place.user_ratings_total || 0,
+      address: place.location?.formatted_address || "",
+      mobile: place.tel || "",
+      website: place.website || "",
+      lat: place.geocodes?.main?.latitude || null,
+      lng: place.geocodes?.main?.longitude ||  null,
+      date_created: place.date_created || null,
     }));
+
     res.json({
       count: leads.length,
       leads,
     });
+
   } catch (err) {
-    console.error(err.message);
+    console.error(err.response?.data || err.message);
     res.status(500).json({ error: "Something went wrong" });
   }
-})
+});
 
 module.exports = router;

@@ -6,7 +6,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-app.use('/api/leads', require('./routes/leadsusingdataset'))
+app.use('/api/leads', require('./routes/leads'))
 
 const PORT = process.env.PORT || 5000;
 
